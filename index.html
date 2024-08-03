@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--    <link rel="stylesheet" href="style.css">-->
+    <title>API GET Request Example</title>
+</head>
+<body>
+<div class="centerDiv center-card" id="currentCard" style="display: flex">
+    <div id="current-card-div"></div>
+    <div id="playerDiv" style="position: absolute; right:10px; top:10px;"></div>
+</div>
+<div id = "Cards" class="centerDiv cards" style="display: flex; flex-wrap: wrap"></div>
+<div class="centerDiv">
+    <button id="fetchCardsDiv" class="button">Pick A Card</button>
+    <button id="playAgainDiv" class="button">Play Again</button>
+    <button id="refreshDiv" class="button">Refresh</button>
+    <button id="sayUnoDiv" class="button" style="background-color: #434ed1">SAY UNO OR GET CAUGHT!</button>
+</div>
+<div class="centerDiv">
+    <div id="nameDiv" class="nameClass"></div>
+</div>
+<script>
+
+    // Divs
+    var fetchCardsDiv = document.getElementById('fetchCardsDiv');
+    var refreshDiv = document.getElementById("refreshDiv");
+    var playAgainDiv = document.getElementById('playAgainDiv');
+    var nameDiv = document.getElementById("nameDiv");
+    var parentCardsDiv = document.getElementById('Cards');
+    var currentCardDiv = document.getElementById('current-card-div');
+    var parentPlayerDiv = document.getElementById('playerDiv');
+    var sayUnoDiv = document.getElementById('sayUnoDiv');
+    sayUnoDiv.addEventListener('click', sayUNO)
+    currentPath = window.location.href;
+    paths = currentPath.split("=");
+    yourPlayerName = paths[paths.length-1];
+    ipHostAndPort = extractIPAndPort(window.location.href);
+    console.log(yourPlayerName);
+    refreshDiv.addEventListener('click', refreshPage);
+    sayUnoDiv.style.display = 'none';
+    setStylesheet();
+
+    function extractIPAndPort(url) {
+        const regex = /^(https?):\/\/([0-9.]+):(\d+)/;
+        const match = url.match(regex);
+
+        if (match) {
+            const protocol = match[1];
+            const ip = match[2];
+            const port = match[3];
+            return `${protocol}://${ip}:${port}`;
+        } else {
+            return null;
+        }
+    }
+
+    // Dynamically set CSS file using JavaScript
+    function setStylesheet() {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = ipHostAndPort+'/game/style.css';
+        document.head.appendChild(link);
+    }
+
+    function chooseColor(id, color){
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/chooseColor?color='+color+'&id='+id;
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = async function () {
+            if (xhr.status === 200) {
+                await sleep(400);
+                getAllPlayers();
+                currentCard();
+                getData();
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function catchUno(event){
+        playerName = event.srcElement.innerHTML.split("!")[1];
+        playerName = playerName.trim();
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/catchUNO?name='+playerName;
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                event.srcElement.style.display = 'none';
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function sayUNO(){
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/sayUNO?name='+yourPlayerName;
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                sayUnoDiv.style.display = 'none';
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    // JavaScript function to refresh the current page
+    function refreshPage() {
+        // Reload the current page
+        location.reload();
+    }
+
+    addPlayer();
+    // create player
+    function addPlayer(){
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/addPlayer?name='+yourPlayerName;
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                gameWon = false;
+                playerWhoWon = '';
+                getAllPlayers();
+                currentCard();
+                getData();
+                playAgainDiv.style.display = 'none';
+                console.log("created "+yourPlayerName);
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function removeAllChild(divName){
+        // Remove all divs
+        parentDiv = document.getElementById(divName);
+        while (parentDiv.firstChild) {
+            parentDiv.removeChild(parentDiv.firstChild);
+        }
+    }
+
+    // Remove event listeners before removing elements from the DOM
+    function removeEventListenersAndChild(divId, event) {
+        // Remove all divs event listeneers
+        parentDiv = document.getElementById(divId);
+        while (parentDiv.firstChild) {
+            parentDiv.firstChild.removeEventListener('click', event);
+            parentDiv.removeChild(parentDiv.firstChild);
+        }
+    }
+
+    function getAllPlayers(){
+        // Remove all divs
+        removeAllChild("playerDiv")
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/allPlayers';
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                removeEventListenersAndChild('playerDiv', catchUno);
+                // Parse the JSON response
+                var players = JSON.parse(xhr.responseText);
+                var toAdd = document.createDocumentFragment();
+                for(var i=0;i<players.length;i++)
+                {
+                    var playerName = players[i]['name'];
+                    var playerDiv = document.createElement('div');
+                    playerDiv.id = 'player-div'+i;
+                    playerDiv.className = 'playerDivClass';
+                    var buttonDiv = undefined;
+                    if(!players[i]['onUNO'] && players[i]['cards'].length==1 && playerName!=yourPlayerName){
+                        buttonDiv = document.createElement('div');
+                        buttonDiv.innerHTML = '<button id="catchUnoDiv'+i+'" class="buttonCatch">Catch! '+playerName+'</button>';
+                        playerDiv.appendChild(buttonDiv);
+                        buttonDiv.addEventListener('click', catchUno);
+                    }
+                    else{
+                        var nameDiv = document.createElement('div');
+                        nameDiv.innerHTML =
+                            '<div></div><p class="outline-text">'+playerName+' '
+                            +players[i]['cards'].length+'</p></div>';
+                        playerDiv.appendChild(nameDiv);
+                    }
+                    if(players[i]['cards'].length==0){
+                        gameWon=true;
+                        playerWhoWon = players[i]['name'];
+                    }
+                    toAdd.appendChild(playerDiv);
+                }
+                if(gameWon){
+                    parentCardsDiv.innerHTML = '<p class="outline-text">'+playerWhoWon+' WON!!</p>'
+                    fetchCardsDiv.style.display = 'none';
+                    playAgainDiv.style.display = 'block';
+                }
+                parentPlayerDiv.appendChild(toAdd);
+            }
+            cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function passCard(){
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/pass';
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                console.log("passed");
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function playAgain(){
+        removeEventListenersAndChild('playerDiv', catchUno);
+        removeEventListenersAndChild("Cards", playTheCard);
+        removeAllChild('current-card-div');
+
+        gameWon = false;
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/playAgain';
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                fetchCardsDiv.style.display = 'block';
+                playAgainDiv.style.display = 'none';
+                currentCard();
+                getAllPlayers();
+                getData();
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function fetchCard(){
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/fetchCard';
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = async function () {
+            if (xhr.status === 200) {
+                sayUnoDiv.style.display = 'none';
+                await sleep(400);
+                getAllPlayers();
+                getData();
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        }
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    fetchCardsDiv.addEventListener('click', fetchCard);
+    playAgainDiv.addEventListener('click', playAgain);
+
+    function getData() {
+        console.log("Start");
+        // Remove all divs
+        removeAllChild("Cards")
+        loadingElement = document.createElement('div');
+        loadingElement.innerHTML = '<p class="outline-text">Loading your cards...</p>'
+        fetchCardsDiv.style.display = 'none';
+        parentDiv.appendChild(loadingElement);
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/player';
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        var cards;
+        xhr.onload = async function () {
+            if (xhr.status === 200) {
+                // Parse the JSON respons
+                var responseData = JSON.parse(xhr.responseText);
+
+                name = responseData['name'];
+                cards = responseData['cards'];
+                nameDiv.innerHTML = '<p class="charming">' + name + '</p>';
+                setTimeout(async function () {
+                    if (cards.length > 0) {
+                        firstCardIndex = undefined;
+                        if (!gameWon) {
+                            // Remove all divs
+                            removeAllChild("Cards")
+                            var toAdd = document.createDocumentFragment();
+                            var anyPossibleCard = false;
+                            for (i = 0; i < cards.length; i++) {
+                                var cardDiv = document.createElement('div');
+                                cardDiv.id = 'card' + i;
+                                cardDiv.className = 'card';
+                                if (cards[i]['possibleToPlay']) {
+                                    anyPossibleCard = true;
+                                    if (responseData['name'] == yourPlayerName) {
+                                        cardDiv.classList.add("card-hover");
+                                        cardDiv.style.marginBottom = "80px";
+                                        cardDiv.style.border = "10px solid #ef9190";
+                                        cardDiv.style.borderRadius = "10px";
+                                    }
+                                    firstCardIndex = firstCardIndex == undefined ? i : firstCardIndex;
+                                }
+                                addCardDiv(responseData['name'], responseData, cards[i], i, cardDiv, cards[i]['possibleToPlay']);
+                                toAdd.appendChild(cardDiv);
+                            }
+                            parentCardsDiv.appendChild(toAdd);
+                            if(responseData == undefined || responseData['cardsToPick']==0){
+                                fetchCardsDiv.innerHTML = "Pick a card";
+                            }
+                            else{
+                                fetchCardsDiv.innerHTML = "Pick "+responseData['cardsToPick']+" cards";
+                            }
+                            if(cards.length==2 && name==yourPlayerName && anyPossibleCard){
+                                sayUnoDiv.style.display = 'block';
+                            }
+                            else{
+                                sayUnoDiv.style.display = 'none';
+                            }
+                            // if (responseData['bot']) {
+                            //     if (firstCardIndex != undefined && firstCardIndex >= 0) {
+                            //         await sleep(1000);
+                            //         playTheCardHitUrl(firstCardIndex);
+                            //     } else if (firstCardIndex == undefined) {
+                            //         await sleep(1000);
+                            //         fetchCard();
+                            //     }
+                            // }
+                            if (name != yourPlayerName) {
+                                fetchCardsDiv.style.display = 'none';
+                                await sleep(4000);
+                                if(name != yourPlayerName) {
+                                    fetchCardsDiv.style.display = 'none';
+                                    getAllPlayers();
+                                    currentCard();
+                                    getData();
+                                }
+                                else{
+                                    fetchCardsDiv.style.display = 'block';
+                                }
+                            }
+                            else{
+                                fetchCardsDiv.style.display = 'block';
+                            }
+                        }
+                    }
+                }, 2000);
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        };
+
+        // Define what happens on error
+        xhr.onerror = function () {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+        console.log("End");
+    }
+
+    // Properly clean up XMLHttpRequest objects after use
+    function cleanupXHR(xhr) {
+        xhr.onload = null;
+        xhr.onerror = null;
+        xhr = null; // Remove reference to the XMLHttpRequest object
+    }
+
+    async function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+
+    // Function to make GET request to the API
+    function currentCard() {
+        removeAllChild('current-card-div');
+
+        // URL of the API endpoint
+        var apiUrl = ipHostAndPort+'/currentCard';
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                removeAllChild('current-card-div');
+                // Parse the JSON response
+                var card = JSON.parse(xhr.responseText);
+                var toAdd = document.createDocumentFragment();
+                var cardDiv = document.createElement('div');
+                cardDiv.id = 'current-card';
+                cardDiv.className = 'card shadow-div';
+                addCardDiv(undefined, undefined, card, 1, cardDiv, false);
+                toAdd.appendChild(cardDiv);
+
+                currentCardDiv.appendChild(toAdd);
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        };
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function getColorFromGradient(percentage) {
+        if (percentage < 25) {
+            return 'RED';
+        } else if (percentage < 50) {
+            return 'BLUE';
+        } else if (percentage < 75) {
+            return 'GREEN';
+        } else {
+            return 'YELLOW';
+        }
+    }
+
+    function playTheCard(event){
+        // URL of the API endpoint
+        id = event.srcElement.id.split('_')[1];
+        playTheCardHitUrl(id);
+    }
+
+    function playTheCardForWildColorChangeCard(event){
+        id = event.srcElement.id.split('_')[1];
+        var rect = event.target.getBoundingClientRect();
+        var x = event.clientY - rect.top; // X-coordinate of the click relative to the element
+        var percentage = (x / rect.height) * 100; // Calculate the percentage
+
+        color = getColorFromGradient(percentage);
+        chooseColor(id, color);
+    }
+
+    function playTheCardHitUrl(id){
+        var apiUrl = ipHostAndPort+'/playTheCard/'+id;
+
+        // Make the GET request using XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+
+        // Define what happens on successful data retrieval
+        xhr.onload = async function () {
+            if (xhr.status === 200) {
+                sayUnoDiv.style.display = 'none';
+                await sleep(400);
+                getAllPlayers();
+                currentCard();
+                getData();
+                cleanupXHR(xhr); // Clean up XMLHttpRequest object after use
+            }
+        };
+
+        // Define what happens on error
+        xhr.onerror = function() {
+            console.error('Request failed');
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    function addCardDiv(player, playerInfo, card, i, cardDiv, playerDeck){
+        var reverseCardDiv = document.createElement('div');
+        if(playerDeck){
+            if(player==undefined || (player!=undefined && player==yourPlayerName)) {
+                if(card['name'] == 'WildColorChangeCard'){
+                    reverseCardDiv.addEventListener('click', playTheCardForWildColorChangeCard);
+                }
+                else if(card['name'] == 'Plus4Card'){
+                    reverseCardDiv.addEventListener('click', playTheCardForWildColorChangeCard);
+                }
+                else{
+                    reverseCardDiv.addEventListener('click', playTheCard);
+                }
+            }
+        }
+        if(card['name'] == 'ReverseCard'){
+            reverseCardDiv.id = 'reverseCard_'+i;
+            reverseCardDiv.className = 'front-face';
+            if(player==undefined || (player!=undefined && player==yourPlayerName)) {
+                reverseCardDiv.style.backgroundColor = card['colorCode'].toLowerCase();
+                reverseCardDiv.innerHTML = '<img src="'+ipHostAndPort+'/game/reverse.png" id=image' +
+                    +i+' onclick="playTheCard()" alt="Description of the image">';
+            }
+        }
+        else if(card['name'] == 'NormalCard'){
+            reverseCardDiv.id = 'normalCard_'+i;
+            reverseCardDiv.className = 'front-face';
+            if(player==undefined || (player!=undefined && player==yourPlayerName)) {
+                reverseCardDiv.style.backgroundColor = card['colorCode'].toLowerCase();
+                number = card['number'];
+                reverseCardDiv.innerHTML = '<p class="outline-text" onclick="playTheCard()" id=text'+i+'>' + number + '</p>';
+            }
+        }
+        else if(card['name'] == 'Plus2Card'){
+            reverseCardDiv.id = 'plus2Card_'+i;
+            reverseCardDiv.className = 'front-face';
+            if(player==undefined || (player!=undefined && player==yourPlayerName)) {
+                reverseCardDiv.style.backgroundColor = card['colorCode'].toLowerCase();
+                number = card['number'];
+                reverseCardDiv.innerHTML = '<p class="outline-text" onclick="playTheCard()" id=text' + i + '>+2</p>';
+            }
+        }
+        else if(card['name'] == 'Plus4Card'){
+            reverseCardDiv.id = 'plus4Card_'+i;
+            reverseCardDiv.className = 'front-face';
+            if(player==undefined || (player!=undefined && player==yourPlayerName)) {
+                reverseCardDiv.classList.add("rainbow");
+                reverseCardDiv.innerHTML = '<p class="outline-text" onclick="playTheCardForWildColorChangeCard()" id=wildColorChangeCard_' + i + '>+4</p>';
+            }
+        }
+        else if(card['name'] == 'SkipCard'){
+            reverseCardDiv.id = 'skipCard_'+i;
+            reverseCardDiv.className = 'front-face';
+            if(player==undefined || (player!=undefined && player==yourPlayerName)) {
+                reverseCardDiv.style.backgroundColor = card['colorCode'].toLowerCase();
+                reverseCardDiv.innerHTML = '<img src="'+ipHostAndPort+'/game/skip.png" id=image' +
+                    +i+' onclick="playTheCard()" alt="Description of the image">';
+            }
+        }
+        else if(card['name'] == 'WildColorChangeCard'){
+            reverseCardDiv.id = 'wildColorChangeCard_'+i;
+            reverseCardDiv.className = 'front-face';
+            if(player==undefined || (player!=undefined && player==yourPlayerName)) {
+                reverseCardDiv.classList.add("rainbow");
+                reverseCardDiv.innerHTML = '<p class="outline-text" onclick="playTheCardForWildColorChangeCard()" id=wildColorChangeCard_' + i + '>WILD</p>';
+            }
+        }
+        cardDiv.appendChild(reverseCardDiv);
+    }
+</script>
+</body>
+</html>
