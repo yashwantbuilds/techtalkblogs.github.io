@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (link.href === currentUrl) {
             link.classList.add('active'); // Highlight the active link
             link.closest('.submenu').classList.add('active-menu'); // Open the submenu
-            link.closest('.menu-item').querySelector('.parent-item').classList.add('active'); // Highlight parent item
+            // link.closest('.menu-item').querySelector('.parent-item').classList.add('active'); // Highlight parent item
         }
     });
 
